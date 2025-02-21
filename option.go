@@ -35,8 +35,6 @@ Options:
   -b, --bytes integer      size of logs to generate (in bytes).
                            "bytes" will be ignored when "number" is set.
   -k,--log-bytes integer size of each log line in bytes. ( > 350)
-  -M, --max-log-bytes integer maximum size of each log line in bytes. ( > 350)
-  -N, --min-log-bytes integer minimum size of each log line in bytes. ( > 350)
   -s, --sleep duration     fix creation time interval for each log (default unit "seconds"). It does not actually sleep.
                            examples: 10, 20ms, 5s, 1m
   -d, --delay duration     delay log generation speed (default unit "seconds").
@@ -87,19 +85,17 @@ func errorExit(err error) {
 
 func defaultOptions() *Option {
 	return &Option{
-		Format:          "apache_common",
-		Output:          "generated.log",
-		Type:            "stdout",
-		Number:          1000,
-		Bytes:           0,
-		Sleep:           0.0,
-		Delay:           0.0,
-		SplitBy:         0,
-		LogLineBytes:    350,
-		MaxLogLineBytes: 0,
-		MinLogLineBytes: 0,
-		Overwrite:       false,
-		Forever:         false,
+		Format:       "apache_common",
+		Output:       "generated.log",
+		Type:         "stdout",
+		Number:       1000,
+		Bytes:        0,
+		Sleep:        0.0,
+		Delay:        0.0,
+		SplitBy:      0,
+		LogLineBytes: 350,
+		Overwrite:    false,
+		Forever:      false,
 	}
 }
 
@@ -195,8 +191,6 @@ func ParseOptions() *Option {
 	number := pflag.IntP("number", "n", opts.Number, "Number of lines to generate")
 	bytes := pflag.IntP("bytes", "b", opts.Bytes, "Size of logs to generate. (in bytes)")
 	logLineBytes := pflag.IntP("log-bytes", "k", opts.LogLineBytes, "Size of each log line to generate. (in bytes) (>= 350)")
-	maxLogLineBytes := pflag.IntP("max-log-bytes", "M", opts.MaxLogLineBytes, "Maximum size of each log line to generate. (in bytes) (>= 350)")
-	minLogLineBytes := pflag.IntP("min-log-bytes", "N", opts.MinLogLineBytes, "Minimum size of each log line to generate. (in bytes) (>= 350)")
 	sleepString := pflag.StringP("sleep", "s", "0s", "Creation time interval (default unit: seconds)")
 	delayString := pflag.StringP("delay", "d", "0s", "Log generation speed (default unit: seconds)")
 	splitBy := pflag.IntP("split", "p", opts.SplitBy, "Maximum number of lines or size of a log file")
@@ -227,18 +221,6 @@ func ParseOptions() *Option {
 	}
 	if opts.LogLineBytes, err = ParseLogLineBytes(*logLineBytes); err != nil {
 		errorExit(err)
-	}
-	if opts.MaxLogLineBytes, err = ParseLogLineBytes(*maxLogLineBytes); err != nil {
-		errorExit(err)
-	}
-	if opts.MinLogLineBytes, err = ParseLogLineBytes(*minLogLineBytes); err != nil {
-		errorExit(err)
-	}
-
-	if opts.MaxLogLineBytes > 0 && opts.MinLogLineBytes > 0 {
-		if opts.MaxLogLineBytes < opts.MinLogLineBytes {
-			errorExit(errors.New("max-log-bytes must be greater than min-log-bytes"))
-		}
 	}
 
 	if opts.Sleep, err = ParseSleep(*sleepString); err != nil {

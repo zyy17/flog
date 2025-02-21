@@ -39,7 +39,7 @@ func Generate(option *Option) error {
 	if option.Forever {
 		for {
 			time.Sleep(delay)
-			log := NewLog(option.Format, option.LogLineBytes, option.MaxLogLineBytes, option.MinLogLineBytes, created)
+			log := NewLog(option.Format, option.LogLineBytes, created)
 			_, _ = writer.Write([]byte(log + "\n"))
 			created = created.Add(interval)
 		}
@@ -49,7 +49,7 @@ func Generate(option *Option) error {
 		// Generates the logs until the certain number of lines is reached
 		for line := 0; line < option.Number; line++ {
 			time.Sleep(delay)
-			log := NewLog(option.Format, option.LogLineBytes, option.MaxLogLineBytes, option.MinLogLineBytes, created)
+			log := NewLog(option.Format, option.LogLineBytes, created)
 			_, _ = writer.Write([]byte(log + "\n"))
 
 			if (option.Type != "stdout") && (option.SplitBy > 0) && (line > option.SplitBy*splitCount) {
@@ -68,7 +68,7 @@ func Generate(option *Option) error {
 		bytes := 0
 		for bytes < option.Bytes {
 			time.Sleep(delay)
-			log := NewLog(option.Format, option.LogLineBytes, option.MaxLogLineBytes, option.MinLogLineBytes, created)
+			log := NewLog(option.Format, option.LogLineBytes, created)
 			_, _ = writer.Write([]byte(log + "\n"))
 
 			bytes += len(log)
@@ -115,7 +115,7 @@ func NewWriter(logType string, logFileName string) (io.WriteCloser, error) {
 }
 
 // NewLog creates a log for given format
-func NewLog(format string, logLineByte int, maxLogLineByte int, minLogLineByte int, t time.Time) string {
+func NewLog(format string, logLineByte int, t time.Time) string {
 	switch format {
 	case "apache_common":
 		return NewApacheCommonLog(t)
@@ -132,11 +132,7 @@ func NewLog(format string, logLineByte int, maxLogLineByte int, minLogLineByte i
 	case "json":
 		return NewJSONLogFormat(t)
 	case "json_with_trace":
-		if maxLogLineByte > 0 && minLogLineByte > 0 {
-			// generate a random log line byte between max and min
-			logLineByte = rand.Intn(maxLogLineByte-minLogLineByte) + minLogLineByte
-		}
-		return NewJSONLogFormatWithTrace(logLineByte, t)
+		return NewJSONLogFormatWithTrace(generateLogLineByte(), t)
 	default:
 		return ""
 	}
@@ -147,4 +143,21 @@ func NewSplitFileName(path string, count int) string {
 	logFileNameExt := filepath.Ext(path)
 	pathWithoutExt := strings.TrimSuffix(path, logFileNameExt)
 	return pathWithoutExt + strconv.Itoa(count) + logFileNameExt
+}
+
+func generateLogLineByte() int {
+	r := rand.Float64() * 100
+
+	switch {
+	case r < 20: // 20%
+		return rand.Intn(800) + 200 // 200-1000
+	case r < 95: // 75%
+		return rand.Intn(1000) + 1000 // 1000-2000
+	case r < 99: // 4%
+		return rand.Intn(98000) + 2000 // 2000-100000
+	case r < 99.5: // 0.5%
+		return rand.Intn(900000) + 100000 // 100000-1000000
+	default: // 0.5%
+		return rand.Intn(4000000) + 1000000 // 1000000-5000000
+	}
 }
